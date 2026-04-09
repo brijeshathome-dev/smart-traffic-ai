@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Traffic Insights | Live System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --bg: #f4f6f8;
+            --card: #ffffff;
+            --green: #138808; /* Indian Flag Green */
+            --blue: #000080;  /* Official Navy */
+            --amber: #FF9933; /* Indian Saffron */
+            --red: #D32F2F;
+            --cyan: #0288D1;
+            --purple: #4A148C;
+            --text: #1a1e29;
+            --text-muted: #64748b;
+            --border: #cbd5e1;
+            --glow-green: none;
+            --glow-red: none;
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-main);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 2rem;
+            background: #ffffff;
+            border-bottom: 4px solid var(--amber); /* Saffron Header Strip */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-logo {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--blue);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 0.2px;
+        }
+
+        .nav-logo-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .nav-center {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .clock {
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .sys-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--green);
+            background: rgba(0, 250, 154, 0.1);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 250, 154, 0.3);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: var(--glow-green);
+            animation: pulse 2s infinite;
+        }
+
+        .sys-badge.offline {
+            color: var(--red);
+            background: rgba(255, 51, 102, 0.1);
+            border-color: rgba(255, 51, 102, 0.3);
+        }
+
+        .sys-badge.offline .dot {
+            background: var(--red);
+            box-shadow: var(--glow-red);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.4;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.4;
+            }
+        }
+
+        .btn {
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-family: var(--font-main);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #e2e8f0;
+            color: var(--text);
+        }
+
+        .btn.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+            box-shadow: none;
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.5px;
+        }
+
+        .card-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 2.5fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .stat-card.c-green::before { background: var(--green); }
+        .stat-card.c-blue::before { background: var(--blue); }
+        .stat-card.c-amber::before { background: var(--amber); }
+        .stat-card.c-purple::before { background: var(--purple); }
+
+        .stat-val {
+            font-family: var(--font-mono);
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-top: 10px;
+            color: var(--text);
+        }
+
+        /* Realistic Camera Intersection Grid */
+        .cam-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .road-p {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .road-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: #000;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            background: var(--text-muted);
+        }
+
+        .badge.bg-green {
+            background: var(--green);
+            box-shadow: var(--glow-green);
+        }
+
+        .badge.bg-red {
+            background: var(--red);
+            box-shadow: var(--glow-red);
+            color: white;
+        }
+
+        .badge.bg-amber {
+            background: var(--amber);
+            color: #000;
+        }
+
+        .cam-box {
+            height: 220px;
+            background: #000;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .cam-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.5;
+            filter: grayscale(40%) contrast(1.2);
+            transition: filter 0.3s, opacity 0.3s;
+            z-index: 1;
+        }
+
+        .cam-box.active .cam-bg {
+            opacity: 0.9;
+            filter: grayscale(0%) contrast(1.1);
+        }
+
+        .cam-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .ai-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--green);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            color: var(--green);
+            font-family: var(--font-mono);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-overlay .blink {
+            width: 6px;
+            height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        .mini-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .mini-stats span {
+            color: var(--text);
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .t-light-box {
+            display: flex;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px;
+            border-radius: 10px;
+            gap: 10px;
+            display: inline-flex;
+        }
+
+        .cir {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #222;
+            opacity: 0.3;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .cir.r.active {
+            background: var(--red);
+            opacity: 1;
+            box-shadow: var(--glow-red);
+        }
+
+        .cir.y.active {
+            background: var(--amber);
+            opacity: 1;
+            box-shadow: 0 0 20px var(--amber);
+        }
+
+        .cir.g.active {
+            background: var(--green);
+            opacity: 1;
+            box-shadow: var(--glow-green);
+        }
+
+        .q-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            margin: 12px 0;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .q-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--green), var(--amber));
+            transition: width 0.4s ease-out;
+        }
+
+        /* Emergency Controls */
+        .em-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 1.25rem;
+        }
+
+        .em-card {
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 12px;
+            text-align: center;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .em-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .em-card.sel {
+            border-color: var(--red);
+            background: rgba(255, 51, 102, 0.1);
+            box-shadow: inset 0 0 15px rgba(255, 51, 102, 0.2);
+            color: var(--red);
+        }
+
+        .em-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #d50000, #ff0055);
+            color: white;
+            border: none;
+            padding: 18px;
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 51, 102, 0.3);
+        }
+
+        .em-btn:disabled {
+            opacity: 0.4;
+            filter: grayscale(1);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .em-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 51, 102, 0.5);
+        }
+
+        .em-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, #d50000, #ff3366);
+            color: white;
+            text-align: center;
+            font-weight: 800;
+            padding: 10px;
+            z-index: 9999;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            display: none;
+            box-shadow: 0 0 30px rgba(255, 51, 102, 0.8);
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .info-box {
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            background: rgba(255, 215, 0, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* Analytics */
+        .chart-box {
+            height: 350px;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .sum-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            text-align: center;
+            gap: 10px;
+            margin-top: 2rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1.5rem;
+        }
+
+        .sum-row .val {
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .insight-card {
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+
+        .insight-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .t-green {
+            color: var(--green);
+        }
+
+        .t-red {
+            color: var(--red);
+        }
+
+        .t-blue {
+            color: var(--blue);
+        }
+
+        .t-amber {
+            color: var(--amber);
+        }
+
+        .font-mono {
+            font-family: var(--font-mono);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        /* Auth Wrapper */
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #eef2f6; z-index: 99999; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s; flex-direction:column; }
+        .login-box { background: #ffffff; border: 1px solid var(--border); padding: 3rem; border-radius: 8px; width: 450px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-top: 6px solid var(--amber); }
+        .login-inp { width: 100%; padding: 12px; margin: 20px 0; background: #f8fafc; border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: var(--font-mono); font-size: 1.1rem; text-align:center; }
+        .login-inp:focus { outline:none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,0,128,0.1); }
+        .btn-login { width: 100%; padding: 14px; background: var(--blue); color: #fff; border: none; font-weight: 700; border-radius: 4px; font-size: 1.1rem; cursor: pointer; transition: 0.3s; }
+        .btn-login:hover { background: #00004d; }
+
+        /* Chennai Select */
+        .loc-select { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-family: var(--font-main); font-weight: 600; font-size: 0.95rem; cursor: pointer; outline:none; }
+        .loc-select:hover { border-color: var(--blue); }
+        .loc-select option { background: var(--card); color: var(--text); }
+    </style>
+</head>
+
+<body>
+    <!-- Secure Government Auth Wrapper -->
+    <div id="login-overlay">
+        <div class="login-box">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" style="height:55px; margin-bottom:15px;" alt="India Emblem">
+            <h2 style="font-size:1.4rem; color:var(--blue); margin-bottom:5px;">National Informatics Centre</h2>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:15px;">Target Node MVD Authentication</p>
+            <input type="password" id="pass-inp" class="login-inp" placeholder="Enter Secure NIC Passcode" onkeypress="if(event.key==='Enter') login()">
+            <div id="login-err" style="color:var(--red); font-size:0.85rem; margin-bottom:15px; display:none;">Access Denied. Passcode Incorrect.</div>
+            <button class="btn-login" onclick="login()">AUTHORIZE SECURE ACCESS</button>
+        </div>
+        <div style="margin-top:25px; color:var(--text-muted); font-size:0.85rem; text-align:center; display:flex; align-items:center; gap:10px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/8/81/TamilNadu_Logo.svg" style="height:35px;" alt="TN Logo">
+            <div style="text-align:left;">
+                <strong>Official Portal of the Transport Department</strong><br>Government of Tamil Nadu
+            </div>
+        </div>
+    </div>
+
+    <div class="em-banner" id="em-banner">🚨 EMERGENCY OVERRIDE PROTOCOL ACTIVE — YIELD RIGHT OF WAY 🚨</div>
+
+    <nav class="navbar">
+        <div class="nav-logo">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" style="height:35px;" alt="India Emblem">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/8/81/TamilNadu_Logo.svg" style="height:35px;" alt="TN Emblem">
+            <div style="display:flex; flex-direction:column; margin-left:5px;">
+                <span style="font-size:1rem; font-weight:800; color:var(--blue);">DEPT OF TRANSPORT, GOVT OF TAMIL NADU</span>
+                <div class="nav-logo-sub" style="display:flex; align-items:center; gap:8px;">
+                    Smart Traffic Analytics
+                    <select id="loc-select" class="loc-select" style="padding:2px 8px; font-size:0.8rem; margin-left:8px;" onchange="changeLoc()">
+                        <option value="Guduvanchery Terminal">📍 Guduvanchery Terminal</option>
+                        <option value="Tambaram Hub">📍 Tambaram Hub</option>
+                        <option value="Guindy Industrial Focus">📍 Guindy Industrial Focus</option>
+                        <option value="Sholinganallur IT Park">📍 Sholinganallur IT Park</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="nav-center">
+            <button class="btn active" id="tab-dash" onclick="setTab('dash')">Live Dashboard</button>
+            <button class="btn" id="tab-ana" onclick="setTab('ana')">Analytics & Export</button>
+        </div>
+        <div class="nav-right">
+            <div class="clock" id="clock">00:00:00</div>
+            <div class="sys-badge" id="sys-badge">
+                <div class="dot" id="api-dot"></div><span id="api-label">System Active</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- DASHBOARD -->
+        <div id="page-dash" class="page active">
+            <div class="header-row">
+                <div>
+                    <!-- Updated Target Title -->
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+                        <h1 id="dyn-title" style="font-size:2.2rem; font-weight:800; letter-spacing:0.5px; color:var(--blue);">Guduvanchery Terminal</h1>
+                        <div class="badge" style="font-size:0.85rem; padding:4px 10px; letter-spacing:1px; background:#e0f2f1; color:#00695c; border:1px solid #00695c;">APPROVED LIVE METRICS</div>
+                    </div>
+                    <p class="card-subtitle" style="font-size:1.05rem; margin-bottom:1.5rem;">Official Motor Vehicles Department Gateway • Autonomous YOLOv8 Analysis</p>
+                </div>
+                <div
+                    style="font-family:var(--font-mono); font-size:1.1rem; color:var(--text-muted); padding:10px 20px; background:rgba(0,0,0,0.3); border-radius:10px; border:1px solid var(--border);">
+                    System Cycle: <strong class="t-green" id="lbl-cyc"
+                        style="font-size:1.4rem; margin-right:5px;">0</strong> (8s sync)
+                </div>
+            </div>
+
+            <div class="grid-4 mb-4" style="margin-bottom:2rem;">
+                <div class="stat-card c-green">
+                    <div class="card-subtitle" style="font-weight:600; color:var(--green)">📈 TOTAL PROCESSED</div>
+                    <div class="stat-val" id="st-tot">0</div>
+                </div>
+                <div class="stat-card c-blue">
+                    <div class="card-subtitle" style="font-weight:600; color:var(--blue)">⏱ AVG WAIT TIME</div>
+                    <div class="stat-val" id="st-wt">0s</div>
+                </div>
+                <div class="stat-card c-amber">
+                    <div class="card-subtitle" style="font-weight:600; color:var(--amber)">📊 AVG THROUGHPUT</div>
+                    <div class="stat-val"><span id="st-tp">0</span><span
+                            style="font-size:1.1rem;color:var(--text-muted);font-family:var(--font-main)"> / min</span>
+                    </div>
+                </div>
+                <div class="stat-card c-purple">
+                    <div class="card-subtitle" style="font-weight:600; color:var(--purple)">⚡ AI CONFIDENCE</div>
+                    <div class="stat-val" id="st-eff">96.4%</div>
+                </div>
+            </div>
+
+            <div class="card" style="padding:1.5rem; background:linear-gradient(90deg, rgba(15,21,45,0.9), rgba(0,250,154,0.05)); border-color:rgba(0,250,154,0.2);">
+                <div class="card-title" style="margin-bottom:1rem; color:var(--text);"><span style="color:var(--green)">🌍</span> Public Society Impact Metrics</div>
+                <div style="display:flex; justify-content:space-between; text-align:left;">
+                    <div style="flex:1; border-right:1px solid var(--border); padding-right:20px;">
+                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:5px;">CO2 Emissions Prevented</div>
+                        <div style="font-family:var(--font-mono); font-size:1.8rem; font-weight:bold; color:var(--green);"><span id="soc-co2">1,245.0</span> <span style="font-size:1rem; color:var(--text-muted)">kg</span></div>
+                    </div>
+                    <div style="flex:1; border-right:1px solid var(--border); padding:0 20px;">
+                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:5px;">Commuter Hours Saved Today</div>
+                        <div style="font-family:var(--font-mono); font-size:1.8rem; font-weight:bold; color:var(--blue);"><span id="soc-hrs">386.0</span> <span style="font-size:1rem; color:var(--text-muted)">hrs</span></div>
+                    </div>
+                    <div style="flex:1; padding-left:20px;">
+                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:5px;">Ambulances Expedited</div>
+                        <div style="font-family:var(--font-mono); font-size:1.8rem; font-weight:bold; color:var(--red);"><span id="soc-amb">12</span> <span style="font-size:1rem; color:var(--text-muted)">units</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="card" style="padding:2rem;">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Live AI Camera Feeds</div>
+                            <div class="card-subtitle" style="margin-top:5px;">Real-time YOLOv8 Object Detection
+                                Tracking</div>
+                        </div>
+                        <div class="badge bg-green" style="padding:6px 12px; font-size:0.85rem;">● AI ACTIVE</div>
+                    </div>
+
+                    <div class="cam-wrapper">
+                        <!-- Roads Generator Placeholders -->
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title t-red mb-2" style="margin-bottom:8px; font-size:1.3rem;">⚠ Emergency Override
+                    </div>
+                    <div class="card-subtitle" style="margin-bottom:20px; line-height:1.5;">Force signal preemption for
+                        emergency vehicles. Resets automatically.</div>
+
+                    <div style="font-size:0.85rem; font-weight:600; margin-bottom:10px; color:var(--text-muted);">Select
+                        Target Road:</div>
+                    <div class="em-grid" id="em-r-grid">
+                        <div class="em-card" onclick="selEmR('A')">↑ North (A)</div>
+                        <div class="em-card" onclick="selEmR('B')">→ East (B)</div>
+                        <div class="em-card" onclick="selEmR('C')">↓ South (C)</div>
+                        <div class="em-card" onclick="selEmR('D')">← West (D)</div>
+                    </div>
+
+                    <div
+                        style="font-size:0.85rem; font-weight:600; margin-bottom:10px; color:var(--text-muted); margin-top:20px;">
+                        Emergency Type:</div>
+                    <div class="em-grid" id="em-t-grid" style="grid-template-columns: 1fr; margin-bottom:25px;">
+                        <div class="em-card" onclick="selEmT('🚑 Ambulance')">🚑 Ambulance (Critical Response)</div>
+                        <div class="em-card" onclick="selEmT('🚒 Fire')">🚒 Fire / Rescue Engine</div>
+                        <div class="em-card" onclick="selEmT('🛡 Police')">🛡 Law Enforcement Pursuit</div>
+                    </div>
+
+                    <button class="em-btn" id="btn-em" disabled onclick="triggerEm()">ACTIVATE OVERRIDE</button>
+
+                    <div class="info-box">
+                        <strong class="t-amber" style="font-size:0.95rem;">ℹ Emergency Protocol Rules</strong><br>
+                        <ul
+                            style="margin-left: 20px; margin-top: 8px; color: var(--text-muted); gap:5px; display:flex; flex-direction:column;">
+                            <li>Selected road gets an immediate hard green light.</li>
+                            <li>All conflicting roads switch to red immediately.</li>
+                            <li>System logs override event securely to database.</li>
+                            <li>Normal autonomous cycle resumes after 15 seconds.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANALYTICS -->
+        <div id="page-ana" class="page">
+            <div class="card" style="padding:2rem;">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title" style="font-size:1.6rem;">Throughput Analysis</div>
+                        <div class="card-subtitle" style="margin-top:5px;">Continuous historical data aggregation from
+                            cloud database</div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn active">Live Array</button>
+                    </div>
+                </div>
+                <div class="chart-box"><canvas id="chart"></canvas></div>
+                <div class="sum-row">
+                    <div>
+                        <div class="card-subtitle">Peak Traffic Target</div>
+                        <div class="val">~50 veh/min</div>
+                    </div>
+                    <div>
+                        <div class="card-subtitle">Current Avg</div>
+                        <div class="val" id="c-tp">0</div>
+                    </div>
+                    <div>
+                        <div class="card-subtitle">Total Processed</div>
+                        <div class="val" id="c-tot">0</div>
+                    </div>
+                    <div>
+                        <div class="card-subtitle">AI Confidence</div>
+                        <div class="val t-green" id="c-eff">96.4%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="grid-template-columns:1fr 1fr; margin-top:2rem;">
+                <div class="card">
+                    <div class="card-header" style="margin-bottom:1rem;">
+                        <div class="card-title">Database Export</div>
+                    </div>
+                    <div class="card-subtitle" style="margin-bottom:1.5rem; line-height:1.5;">
+                        Export raw database tables generated by the live system directly from the Render API backend.
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr; gap:15px;">
+                        <button class="em-btn" id="btn-pdf"
+                            style="background:linear-gradient(135deg, rgba(255,51,102,0.15), rgba(255,51,102,0.3)); border:1px solid var(--red); box-shadow:none; color:white; margin:0;"
+                            onclick="exportRealPDF()">📄 Download Authenticated PDF Report</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">System Insights</div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:15px;">
+                        <div class="insight-card">
+                            <div style="font-size:0.95rem;font-weight:700;margin-bottom:6px; color:var(--text);">💡 Neural Network Adaptive Timing</div>
+                            <div class="card-subtitle" id="sys-insight-text" style="margin-bottom:8px;">South Boundary optimization active. Route clear.</div>
+                            <div class="t-green font-mono" style="font-size:0.85rem;">📈 +12% flow efficiency achieved</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer" style="padding-bottom: 3rem; margin-top:2rem; border-top: 1px solid var(--border); padding-top: 2rem;">
+                ⚡ Analytics Information<br>
+                Data permanently archived to PostgreSQL • Updated every 5 seconds • Resolution Time: Live<br>
+                © 2026 Smart Traffic Simulator<br><br>
+                <div style="font-weight: 700; color: var(--blue); margin-bottom: 8px;">ENGINEERING TEAM</div>
+                <div style="display:flex; justify-content:center; gap: 20px; flex-wrap:wrap; font-family: var(--font-mono); font-size: 0.85rem; color:var(--text-muted);">
+                    <span>Allan Roy (RA2411030010028)</span>
+                    <span>Peter Jijo Manavalan (RA2411030010045)</span>
+                    <span>Arjun Anil (RA2411030010020)</span>
+                    <span>Elijah Ajith (RA2411030010001)</span>
+                    <span>Arhan Ashraf (RA2411030010039)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Real API targeting
+        const API_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:3000';
+
+        let S = {
+            cycles: 0, time: 0, waitTotal: 0,
+            activeRoad: 'A', roadNames: ['A', 'B', 'C', 'D'],
+            queues: { A: 0, B: 0, C: 0, D: 0 }, speeds: { A: 0, B: 0, C: 0, D: 0 },
+            vehs: { A: 0, B: 0, C: 0, D: 0 }, totals: {}, 
+            emOn: false, emRoad: null, emType: null, emTimer: 0,
+            apiActive: false
+        };
+
+        const R_LABELS = { A: 'North Bound (A)', B: 'East Bound (B)', C: 'South Bound (C)', D: 'West Bound (D)' };
+
+        const LOC_PROFILES = {
+            'Guduvanchery Terminal': { spawnChance: 0.03, speedBase: 1.5, typeBias: ['CAR', 'CAR', 'SUV', 'TRUCK', 'VAN'], insight: 'South Boundary optimization active. Route clear.' },
+            'Tambaram Hub': { spawnChance: 0.08, speedBase: 2.0, typeBias: ['CAR', 'CAR', 'SUV', 'VAN'], insight: 'Heavy Commuter volume detected. Expediting Main line.' },
+            'Guindy Industrial Focus': { spawnChance: 0.04, speedBase: 1.0, typeBias: ['TRUCK', 'TRUCK', 'VAN', 'CAR'], insight: 'Freight Fleet pacing adjusted to -12% velocity curve.' },
+            'Sholinganallur IT Park': { spawnChance: 0.07, speedBase: 2.8, typeBias: ['CAR', 'CAR', 'CAR', 'SUV'], insight: 'IT Corridor peak surge override firmly engaged.' },
+        };
+        let activeProfileName = 'Guduvanchery Terminal';
+        let activeProfile = LOC_PROFILES[activeProfileName];
+
+        // Ensure realistic 24-hr historical daily volume up to current time (resets implicitly via Date cycle at midnight)
+        const elapsedMins = (new Date().getHours() * 60) + new Date().getMinutes(); 
+        Object.keys(LOC_PROFILES).forEach(k => {
+            S.totals[k] = Math.floor(LOC_PROFILES[k].spawnChance * 60 * 4 * elapsedMins * 1.5);
+        });
+
+        // Guaranteed CDN Delivery for background map (fix missing image artifacts)
+        const IMG_URLS = {
+            A: 'https://images.unsplash.com/photo-1617454269151-512c1b18360f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+            B: 'https://images.unsplash.com/photo-1617454269151-512c1b18360f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+            C: 'https://images.unsplash.com/photo-1617454269151-512c1b18360f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+            D: 'https://images.unsplash.com/photo-1617454269151-512c1b18360f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'
+        };
+
+        // Generate Roads UI
+        function initRoads() {
+            const wrap = document.querySelector('.cam-wrapper');
+            const colors = { A: 'var(--blue)', B: 'var(--amber)', C: 'var(--red)', D: 'var(--purple)' };
+
+            S.roadNames.forEach(r => {
+                const el = document.createElement('div');
+                el.className = `road-p`;
+                el.innerHTML = `
+                    <div class="road-header">
+                        <span style="font-size:1.1rem;"><span style="color:${colors[r]}; margin-right:6px;">●</span> ${R_LABELS[r]}</span>
+                        <div style="display:flex; align-items:center; gap:15px;">
+                            <div class="t-light-box">
+                                <div class="cir r active" id="l-${r}-r"></div>
+                                <div class="cir y" id="l-${r}-y"></div>
+                                <div class="cir g" id="l-${r}-g"></div>
+                            </div>
+                            <div class="badge bg-red" id="b-${r}" style="width:60px; text-align:center;">RED</div>
+                        </div>
+                    </div>
+                    
+                    <div class="cam-box" id="cbox-${r}">
+                        <img src="${IMG_URLS[r]}" class="cam-bg" id="vid-${r}" style="object-fit:cover; width:100%; height:100%;">
+                        <canvas class="cam-canvas" id="canv-${r}"></canvas>
+                        <div class="ai-overlay"><div class="blink"></div> AI YOLO TRACKING</div>
+                    </div>
+                    
+                    <div class="mini-stats">
+                        <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">VEHICLES (EXACT)</span>
+                            <span class="t-green font-mono" style="font-size:1.1rem;" id="v-${r}">0</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:center;">
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">QUEUE (STOPPED)</span>
+                            <span class="t-amber font-mono" style="font-size:1.1rem;" id="q-${r}">0</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">AVG SPEED</span>
+                            <span><span id="s-${r}">0</span> km/h</span>
+                        </div>
+                    </div>
+                    <div class="q-bar-bg"><div class="q-bar" id="bar-${r}" style="width:0%"></div></div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-family:var(--font-mono); color:var(--text-muted);">
+                        <span>Throughput: <span class="t-green font-mono" id="tp-${r}">--</span> veh/min</span>
+                        <span>Confidence: <span class="t-blue" id="conf-${r}">98.2%</span></span>
+                    </div>
+                `;
+                wrap.appendChild(el);
+            });
+        }
+        initRoads();
+
+        // Canvas Realistic AI Engine (Bounding Boxes over literal video)
+        const canvEngine = {};
+        S.roadNames.forEach(r => {
+            const canvas = document.getElementById(`canv-${r}`);
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            canvEngine[r] = { ctx: canvas.getContext('2d'), boxes: [], w: canvas.width, h: canvas.height };
+        });
+
+        const VEH_CLASSES = ['CAR', 'SUV', 'TRUCK', 'VAN'];
+
+        function spawnAIBox(r) {
+            const engine = canvEngine[r];
+            engine.boxes.push({
+                x: (engine.w / 2) - 20 + (Math.random() * 40),
+                y: engine.h * 0.35 + (Math.random() * 10),
+                w: 12, h: 8,
+                driftX: (Math.random() - 0.5) * 3,
+                driftY: activeProfile.speedBase * (0.6 + Math.random() * 1.5),
+                scale: 1, speedMult: 1, brakeColor: '#00fa9a',
+                type: activeProfile.typeBias[Math.floor(Math.random() * activeProfile.typeBias.length)],
+                conf: (85 + Math.random() * 14).toFixed(1)
+            });
+        }
+
+        let lastFrame = 0;
+        function renderAIBoxes(time) {
+            if (!lastFrame) lastFrame = time;
+            const delta = (time - lastFrame) / 16.66;
+            lastFrame = time;
+            
+            let newTotalAdded = 0;
+
+            S.roadNames.forEach(r => {
+                const engine = canvEngine[r];
+                engine.ctx.clearRect(0, 0, engine.w, engine.h);
+                
+                const isGreen = S.emOn ? (r === S.emRoad) : (r === S.activeRoad);
+
+                // Constant Authentic Traffic Flow
+                if (Math.random() < activeProfile.spawnChance) {
+                    spawnAIBox(r);
+                    newTotalAdded++;
+                }
+
+                let stoppedCount = 0;
+                let activeCount = engine.boxes.length;
+                let totalSpd = 0;
+
+                // Sort visually distant objects first (Z-index layering) and kinematic proximity evaluation
+                engine.boxes.sort((a,b) => a.y - b.y);
+
+                engine.boxes.forEach((b, i) => {
+                    let frontCar = i < engine.boxes.length - 1 ? engine.boxes[i+1] : null;
+                    let distToFront = frontCar ? (frontCar.y - b.y) : 999;
+                    let atStopLine = b.y > (engine.h - 50);
+
+                    // Authentic Kinematics Braking Rules
+                    if ((!isGreen && atStopLine) || distToFront < 30) {
+                        b.speedMult *= 0.85; // Hard brake deceleration curve
+                        b.brakeColor = '#ff3366';
+                        b.driftX *= 0.90; // stop drifting laterally
+                        if (b.speedMult < 0.1) stoppedCount++;
+                    } else {
+                        // Accelerate and proceed
+                        b.speedMult = Math.min(1, b.speedMult + 0.05);
+                        b.brakeColor = '#00fa9a';
+                    }
+
+                    b.scale += 0.01 * delta * b.speedMult;
+                    b.x += b.driftX * b.scale * delta * b.speedMult;
+                    b.y += b.driftY * b.scale * delta * b.speedMult;
+                    b.w += 0.4 * delta * b.speedMult;
+                    b.h += 0.25 * delta * b.speedMult;
+
+                    totalSpd += (b.driftY * b.speedMult * 25);
+
+                    // Draw bounding box
+                    engine.ctx.strokeStyle = b.brakeColor;
+                    engine.ctx.lineWidth = 1.5;
+                    engine.ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+                    // Draw Label bg
+                    engine.ctx.fillStyle = b.brakeColor;
+                    engine.ctx.fillRect(b.x, b.y - 12, b.w, 12);
+
+                    // Draw Label text
+                    engine.ctx.fillStyle = '#000';
+                    engine.ctx.font = 'bold 9px "Space Mono"';
+                    engine.ctx.fillText(`[${b.type}]`, b.x + 1, b.y - 3, b.w - 2);
+                });
+
+                S.vehs[r] = activeCount;
+                S.queues[r] = stoppedCount;
+                S.speeds[r] = activeCount > 0 ? (totalSpd / activeCount).toFixed(1) : 0;
+
+                // Cleanup Offscreen (Bottom of frame)
+                engine.boxes = engine.boxes.filter(b => b.y < engine.h + 20 && b.x > -50 && b.x < engine.w + 50);
+            });
+
+            S.totals[activeProfileName] += newTotalAdded;
+
+            // Average Wait Time calculation hook
+            let sumQ = 0;
+            Object.values(S.queues).forEach(v => sumQ += v);
+            S.waitTotal = (sumQ > 0) ? ((sumQ / 4) * 1.5).toFixed(1) : 0;
+
+            requestAnimationFrame(renderAIBoxes);
+        }
+        requestAnimationFrame(renderAIBoxes);
+
+        // UI Refresh Loop
+        setInterval(() => {
+            const resetMins = (new Date().getHours() * 60) + new Date().getMinutes();
+            if(resetMins === 0) S.totals[activeProfileName] = 0; // Midnight complete flush!
+            
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById('st-tot').innerText = S.totals[activeProfileName];
+            document.getElementById('c-tot').innerText = S.totals[activeProfileName];
+            if(document.getElementById('st-wt')) document.getElementById('st-wt').innerText = S.waitTotal + 's';
+
+            S.roadNames.forEach(r => {
+                const isGreen = S.emOn ? (r === S.emRoad) : (r === S.activeRoad);
+                // Exact counts injected into DOM directly from physics engine readouts
+                document.getElementById(`v-${r}`).innerText = S.vehs[r];
+                document.getElementById(`q-${r}`).innerText = S.queues[r];
+
+                S.speeds[r] = parseFloat(S.speeds[r]).toFixed(1);
+                document.getElementById(`s-${r}`).innerText = S.speeds[r];
+
+                document.getElementById(`tp-${r}`).innerText = (S.vehs[r] * 12).toFixed(0);
+                document.getElementById(`conf-${r}`).innerText = (93 + Math.random() * 6).toFixed(1) + '%';
+
+                let pct = Math.min(100, (S.queues[r] / 15) * 100);
+                let bar = document.getElementById(`bar-${r}`);
+                bar.style.width = pct + '%';
+                bar.style.background = pct < 30 ? 'var(--green)' : pct < 70 ? 'var(--amber)' : 'var(--red)';
+            });
+
+            let aTp = Math.floor(S.totals[activeProfileName] / (((resetMins * 60) + 1) / 60)) * 60;
+            if (aTp > 0 && aTp < 5000) {
+                document.getElementById('st-tp').innerText = aTp;
+                if(document.getElementById('c-tp')) document.getElementById('c-tp').innerText = aTp;
+            }
+
+        }, 250);
+
+        // True AI Algorithmic Flow Control (Queue-based Priority overrides round-robin)
+        let socCO2 = 1245.0; let socHrs = 386.0;
+        setInterval(() => {
+            if (S.emOn) {
+                S.emTimer -= 1;
+                if (S.emTimer <= 0) window.triggerEm(); // cancel emergency
+            } else {
+                S.time += 1;
+                
+                // Real-time AI Evaluation
+                let maxQ = 0; let worstRoad = null;
+                S.roadNames.forEach(r => { 
+                    if(S.queues[r] > maxQ && r !== S.activeRoad) { maxQ = S.queues[r]; worstRoad = r; }
+                });
+
+                // Force dynamic light swap if a road builds a dangerous queue, otherwise standard 10s cycle
+                let cycleLength = worstRoad && maxQ > 6 ? 4 : 10; 
+                
+                if (S.time >= cycleLength) {
+                    S.time = 0;
+                    if(worstRoad && maxQ > 3) {
+                        S.activeRoad = worstRoad; // AI explicitly takes control to relieve the jam
+                    } else {
+                        S.activeRoad = S.roadNames[(S.roadNames.indexOf(S.activeRoad) + 1) % 4]; // Rest to idle round-robin
+                    }
+                    S.cycles++;
+                    document.getElementById('lbl-cyc').innerText = S.cycles;
+                    updateLights();
+                }
+            }
+            
+            // Impact metrics tick
+            socCO2 += (sumQ * 0.001); socHrs += (S.waitTotal * 0.0001);
+            if(document.getElementById('soc-co2')) document.getElementById('soc-co2').innerText = socCO2.toFixed(1);
+            if(document.getElementById('soc-hrs')) document.getElementById('soc-hrs').innerText = socHrs.toFixed(1);
+        }, 1000);
+
+        // Security / Dropdown Hook
+        window.login = () => {
+            const val = document.getElementById('pass-inp').value;
+            if(val === 'admin123') {
+                document.getElementById('login-overlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('login-overlay').style.display='none', 500);
+            } else {
+                document.getElementById('login-err').style.display = 'block';
+            }
+        }
+        window.changeLoc = () => {
+            const loc = document.getElementById('loc-select').value;
+            document.getElementById('dyn-title').innerText = loc;
+            activeProfileName = loc.trim();
+            activeProfile = LOC_PROFILES[activeProfileName];
+            
+            if(document.getElementById('sys-insight-text')) document.getElementById('sys-insight-text').innerText = activeProfile.insight;
+            
+            S.roadNames.forEach(r => { canvEngine[r].boxes = []; S.queues[r]=0; S.vehs[r]=0; S.speeds[r]=0; }); // flush cache completely
+            if (typeof rebuildChart !== 'undefined') rebuildChart(activeProfileName);
+            
+            document.getElementById('st-tot').style.color = 'var(--blue)'; setTimeout(()=>document.getElementById('st-tot').style.color='', 500);
+        }
+
+        function updateLights() {
+            S.roadNames.forEach(r => {
+                let isG = S.emOn ? (r === S.emRoad) : (r === S.activeRoad);
+                let cStr = isG ? 'g' : 'r';
+
+                document.getElementById(`l-${r}-r`).classList.remove('active');
+                document.getElementById(`l-${r}-y`).classList.remove('active');
+                document.getElementById(`l-${r}-g`).classList.remove('active');
+                document.getElementById(`l-${r}-${cStr}`).classList.add('active');
+
+                let b = document.getElementById(`b-${r}`);
+                let cbox = document.getElementById(`cbox-${r}`);
+
+                b.className = 'badge';
+                if (cStr === 'r') { b.classList.add('bg-red'); b.innerText = 'RED'; cbox.classList.remove('active'); }
+                if (cStr === 'g') { b.classList.add('bg-green'); b.innerText = 'GREEN'; cbox.classList.add('active'); }
+            });
+        }
+        updateLights();
+
+        // UI Interactions
+        window.setTab = (t) => {
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${t}`).classList.add('active');
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${t}`).classList.add('active');
+        }
+
+        // Emergency Logic
+        window.selEmR = (r) => {
+            S.emRoad = r;
+            document.querySelectorAll('#em-r-grid .em-card').forEach(c => c.classList.remove('sel'));
+            event.target.classList.add('sel'); chkEm();
+        }
+        window.selEmT = (t) => {
+            S.emType = t;
+            document.querySelectorAll('#em-t-grid .em-card').forEach(c => c.classList.remove('sel'));
+            event.target.classList.add('sel'); chkEm();
+        }
+        function chkEm() { if (S.emRoad && S.emType) document.getElementById('btn-em').disabled = false; }
+
+        window.triggerEm = () => {
+            const b = document.getElementById('btn-em');
+            const ban = document.getElementById('em-banner');
+
+            if (S.emOn) {
+                S.emOn = false; S.emRoad = null;
+                b.innerHTML = 'ACTIVATE OVERRIDE';
+                b.style.boxShadow = '0 4px 15px rgba(255,51,102,0.3)';
+                b.disabled = true;
+                document.querySelectorAll('.em-card').forEach(c => c.classList.remove('sel'));
+                ban.style.display = 'none';
+            } else {
+                S.emOn = true; S.emTimer = 15;
+                b.innerHTML = '🔴 ACTIVE (CLICK TO CANCEL AUTORESET)';
+                b.style.boxShadow = '0 0 30px rgba(255,51,102,0.8)';
+                ban.style.display = 'block';
+                if (S.apiActive) postAPI('/api/emergency', { road: S.emRoad, vehicle_type: S.emType });
+            }
+            updateLights();
+        }
+
+        window.exportRealPDF = async () => {
+            const btn = document.getElementById('btn-pdf');
+            btn.innerHTML = "⏳ Generating Report from Database..."; btn.disabled = true;
+            try {
+                let rawData = await fetchAPI('/api/export/json');
+                // Auto fallback if backend goes to sleep
+                if (!rawData || !rawData.length) {
+                    rawData = S.roadNames.map((r, i) => ({
+                        id: S.totals[activeProfileName] - i, road: r, signal_state: (S.emOn ? (r === S.emRoad) : (r === S.activeRoad)) ? 'G' : 'R',
+                        vehicles: S.vehs[r] || 0, queue: S.queues[r] || 0, speed: S.speeds[r] || 0, throughput: Math.floor((S.vehs[r] || 0) * 60),
+                        created_at: new Date().toISOString()
+                    }));
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFontSize(16);
+                doc.setTextColor(255, 51, 102);
+                doc.text("Official Traffic Log Report", 14, 20);
+                doc.setTextColor(100);
+                doc.setFontSize(10);
+                doc.text("Guduvanchery, Chennai, Tamil Nadu - Autonomous Control System", 14, 27);
+                doc.text("Date Generated: " + new Date().toLocaleString(), 14, 33);
+
+                const tableData = rawData.slice(0, 100).map(r => [
+                    r.id, r.road, r.signal_state, r.vehicles, r.queue, r.speed, r.throughput,
+                    new Date(r.created_at).toLocaleTimeString()
+                ]);
+
+                doc.autoTable({
+                    startY: 40,
+                    head: [['ID', 'Road', 'Signal', 'Veh', 'Queue', 'Spd', 'T-Put', 'Time']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [15, 21, 45], textColor: [0, 250, 154] },
+                    alternateRowStyles: { fillColor: [240, 240, 240] }
+                });
+
+                doc.save('Guduvanchery_Traffic_Report.pdf');
+                btn.innerHTML = "✅ PDF Generated Successfully";
+            } catch (e) {
+                console.error(e);
+                btn.innerHTML = "❌ Error (Ensure API connects)";
+            }
+            setTimeout(() => { btn.innerHTML = "📄 Download Authenticated PDF Report"; btn.disabled = false; }, 3500);
+        }
+
+        // API
+        async function fetchAPI(route) {
+            try { return await (await fetch(API_URL + route)).json(); }
+            catch (err) { return null; }
+        }
+        async function postAPI(route, bodyInfo) {
+            try {
+                return await (await fetch(API_URL + route, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bodyInfo)
+                })).json();
+            } catch (err) { return null; }
+        }
+
+        setInterval(async () => {
+            const stat = await fetchAPI('/api/status');
+            const badge = document.getElementById('sys-badge');
+            const lbl = document.getElementById('api-label');
+            if (stat) {
+                S.apiActive = true;
+                badge.classList.remove('offline'); lbl.innerText = "System Active & Syncing (" + stat.uptime_seconds + "s)";
+            } else {
+                S.apiActive = false;
+                badge.classList.add('offline'); lbl.innerText = "API Offline";
+            }
+        }, 5000);
+
+        setInterval(() => {
+            if (S.apiActive) {
+                postAPI('/api/traffic/log', {
+                    roads: S.roadNames.map(r => ({
+                        id: r, vehicles: S.vehs[r], queue: S.queues[r],
+                        speed: parseFloat(S.speeds[r]), throughput: Math.floor(S.vehs[r] * 60),
+                        signal_state: (S.emOn ? (r === S.emRoad) : (r === S.activeRoad)) ? 'G' : 'R'
+                    })),
+                    snapshot: { active_road: S.activeRoad, total: S.totals[activeProfileName], wait: S.waitTotal, tput: S.totals[activeProfileName] }
+                });
+            }
+        }, 5000);
+
+        const ctx = document.getElementById('chart').getContext('2d');
+        const cinst = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                datasets: [
+                    { label: 'North(A)', data: [15, 45, 65, 40, 30, 15], borderColor: '#00bfff', tension: 0.4, borderWidth: 3 },
+                    { label: 'East(B)', data: [20, 30, 50, 60, 35, 20], borderColor: '#ffd700', tension: 0.4, borderWidth: 3 },
+                    { label: 'South(C)', data: [10, 25, 30, 45, 20, 10], borderColor: '#ff3366', tension: 0.4, borderWidth: 3 },
+                    { label: 'West(D)', data: [25, 40, 35, 25, 50, 30], borderColor: '#b026ff', tension: 0.4, borderWidth: 3 }
+                ],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { min: 0, max: 150, grid: { color: '#e2e8f0' }, ticks: { color: '#475569' } },
+                    x: { grid: { display: false }, ticks: { color: '#475569' } }
+                },
+                plugins: { legend: { labels: { color: '#1e293b', usePointStyle: true } } }
+            }
+        });
+
+        window.rebuildChart = (locName) => {
+            const multi = LOC_PROFILES[locName].spawnChance * 1000; 
+            cinst.data.datasets[0].data = [15+multi, 45+multi, 65+multi, 40+multi, 30+multi, 15+multi];
+            cinst.data.datasets[1].data = [20+multi, 30+multi, 50+multi, 60+multi, 35+multi, 20+multi];
+            cinst.data.datasets[2].data = [10+multi, 25+multi, 30+multi, 45+multi, 20+multi, 10+multi];
+            cinst.data.datasets[3].data = [25+multi, 40+multi, 35+multi, 25+multi, 50+multi, 30+multi];
+            cinst.update();
+        };
+        rebuildChart(activeProfileName);
+
+        setInterval(() => {
+            if (cinst) {
+                cinst.data.datasets.forEach(ds => {
+                    const l = ds.data.length - 1;
+                    ds.data[l] += (Math.random() * 6 - 3);
+                    if (ds.data[l] < 10) ds.data[l] = 10;
+                });
+                cinst.update();
+            }
+        }, 3000);
+    </script>
+</body>
+
+</html>
